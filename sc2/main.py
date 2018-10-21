@@ -135,6 +135,7 @@ async def _host_game_aiter(map_settings, players, realtime, portconfig=None, sav
     assert any(isinstance(p, (Human, Bot)) for p in players)
 
     async with SC2Process() as server:
+        run = 0
         while True:
             await server.ping()
 
@@ -142,9 +143,9 @@ async def _host_game_aiter(map_settings, players, realtime, portconfig=None, sav
 
             try:
                 result = await _play_game(players[0], client, realtime, portconfig, step_time_limit, game_time_limit)
-
+                run += 1
                 if save_replay_as is not None:
-                    await client.save_replay(save_replay_as)
+                    await client.save_replay(str(run) + save_replay_as)
                 await client.leave()
             except ConnectionAlreadyClosed:
                 logging.error(f"Connection was closed before the game ended")
@@ -154,7 +155,7 @@ async def _host_game_aiter(map_settings, players, realtime, portconfig=None, sav
             if new_players is not None:
                 players = new_players
 
-def _host_game_iter(*args, **kwargs):
+def host_game_iter(*args, **kwargs):
     game = _host_game_aiter(*args, **kwargs)
     new_playerconfig = None
     while True:
