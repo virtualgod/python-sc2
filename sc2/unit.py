@@ -515,6 +515,12 @@ class Unit(object):
     def __repr__(self):
         return f"Unit(name={self.name !r}, tag={self.tag})"
 
+    def __eq__(self, other):
+        return self.tag == other.tag
+
+    def __ne__(self, other):
+        return not self == other
+
 
 class UnitOrder(object):
     @classmethod
