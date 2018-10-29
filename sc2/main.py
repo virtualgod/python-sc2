@@ -43,9 +43,9 @@ async def _play_game_ai(client, player_id, ai, realtime, step_time_limit, game_t
         if client._game_result:
             if reset and run < num_runs:
                 print("Result obtained. Reset...")
-                client._game_result = None
                 await client.chat_send("Reset", False)
                 ai.on_reset(client._game_result[player_id])
+                client._game_result = None
                 iteration = 0
                 continue
             else:
@@ -139,7 +139,7 @@ async def _host_game(map_settings, players, realtime, portconfig=None, save_repl
             result = await _play_game(players[0], client, realtime, portconfig, step_time_limit, game_time_limit, reset,
                                       num_runs)
             if save_replay_as is not None:
-                await client.save_replay(save_replay_as)
+                await client.save_replay('Replays/' + save_replay_as)
             await client.leave()
             await client.quit()
         except ConnectionAlreadyClosed:
