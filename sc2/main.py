@@ -34,7 +34,7 @@ async def _play_game_ai(client, player_id, ai, realtime, step_time_limit, game_t
 
     ai._prepare_start(client, player_id, game_info, game_data)
     ai.on_start()
-    ai.on_reset(client._game_result[player_id])
+    ai.on_reset()
 
     iteration = 0
     run = 0
@@ -125,7 +125,7 @@ async def _setup_host_game(server, map_settings, players, realtime):
 
 
 async def _host_game(map_settings, players, realtime, portconfig=None, save_replay_as=None, step_time_limit=None,
-                     game_time_limit=None, reset=False, num_runs=1):
+                     game_time_limit=None, reset=False, num_runs=1, game_steps=8):
     assert len(players) > 0, "Can't create a game without players"
 
     assert any(isinstance(p, (Human, Bot)) for p in players)
@@ -134,6 +134,7 @@ async def _host_game(map_settings, players, realtime, portconfig=None, save_repl
         await server.ping()
 
         client = await _setup_host_game(server, map_settings, players, realtime)
+        client.game_step = game_steps
 
         try:
             result = await _play_game(players[0], client, realtime, portconfig, step_time_limit, game_time_limit, reset,
@@ -150,7 +151,7 @@ async def _host_game(map_settings, players, realtime, portconfig=None, save_repl
 
 
 async def _host_game_aiter(map_settings, players, realtime, portconfig=None, save_replay_as=None, step_time_limit=None,
-                           game_time_limit=None):
+                           game_time_limit=None, game_steps=8):
     assert len(players) > 0, "Can't create a game without players"
 
     assert any(isinstance(p, (Human, Bot)) for p in players)
@@ -161,6 +162,7 @@ async def _host_game_aiter(map_settings, players, realtime, portconfig=None, sav
             await server.ping()
 
             client = await _setup_host_game(server, map_settings, players, realtime)
+            client.game_step = game_steps
 
             try:
                 result = await _play_game(players[0], client, realtime, portconfig, step_time_limit, game_time_limit)
@@ -184,11 +186,13 @@ def host_game_iter(*args, **kwargs):
         new_playerconfig = yield asyncio.get_event_loop().run_until_complete(game.asend(new_playerconfig))
 
 
-async def _join_game(players, realtime, portconfig, save_replay_as=None, step_time_limit=None, game_time_limit=None):
+async def _join_game(players, realtime, portconfig, save_replay_as=None, step_time_limit=None, game_time_limit=None,
+                     game_steps=8):
     async with SC2Process() as server:
         await server.ping()
 
         client = Client(server._ws)
+        client.game_step = game_steps
 
         try:
             result = await _play_game(players[1], client, realtime, portconfig, step_time_limit, game_time_limit)
