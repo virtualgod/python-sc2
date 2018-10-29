@@ -442,6 +442,13 @@ class BotAI(object):
         r = await self._client.actions(actions, game_data=self._game_data)
         return r
 
+    async def do_quick_actions(self, actions: List["UnitCommand"]):
+        if not actions:
+            return None
+
+        r = await self._client.actions(actions, game_data=self._game_data)
+        return r
+
     async def chat_send(self, message: str):
         """Send a chat message."""
         assert isinstance(message, str)
