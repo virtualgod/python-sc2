@@ -570,6 +570,10 @@ class BotAI(object):
         """Allows initializing the bot when the game data is available."""
         pass
 
+    def on_reset(self, game_result: Result):
+        """Ran when map is reset"""
+        pass
+
     async def on_step(self, iteration: int):
         """Ran on every game step (looped in realtime mode)."""
         raise NotImplementedError
