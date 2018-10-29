@@ -145,7 +145,7 @@ async def _host_game_aiter(map_settings, players, realtime, portconfig=None, sav
                 result = await _play_game(players[0], client, realtime, portconfig, step_time_limit, game_time_limit)
                 run += 1
                 if save_replay_as is not None:
-                    await client.save_replay(str(run) + save_replay_as)
+                    await client.save_replay('Replays/' + str(run) + save_replay_as)
                 await client.leave()
             except ConnectionAlreadyClosed:
                 logging.error(f"Connection was closed before the game ended")
