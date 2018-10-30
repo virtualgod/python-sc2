@@ -42,7 +42,7 @@ async def _play_game_ai(server, client, player_id, ai, realtime, step_time_limit
     while True:
         state = await client.observation()
         if client._game_result:
-            if client._game_result == Result.Victory:
+            if client._game_result[player_id] == Result.Victory:
                 num_wins += 1
             run += 1
             if reset and run < num_runs:
