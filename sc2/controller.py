@@ -35,3 +35,8 @@ class Controller(Protocol):
         logger.info(f"Players: {', '.join(str(p) for p in players)}")
         result = await self._execute(create_game=req)
         return result
+
+    async def restart_game(self):
+        req = sc_pb.RequestRestartGame()
+        result = await self._execute(restart_game=req)
+        return result

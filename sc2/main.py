@@ -1,7 +1,7 @@
 import asyncio
-import async_timeout
-
 import logging
+
+import async_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -9,7 +9,7 @@ from .sc2process import SC2Process
 from .portconfig import Portconfig
 from .client import Client
 from .player import Human, Bot
-from .data import Race, Difficulty, Result, ActionResult, CreateGameError
+from .data import Result, CreateGameError
 from .game_state import GameState
 from .protocol import ConnectionAlreadyClosed
 
@@ -28,22 +28,23 @@ async def _play_game_human(client, player_id, realtime, game_time_limit):
             await client.step()
 
 
-async def _play_game_ai(client, player_id, ai, realtime, step_time_limit, game_time_limit, reset, num_runs):
+async def _play_game_ai(server, client, player_id, ai, realtime, step_time_limit, game_time_limit, reset, num_runs):
     game_data = await client.get_game_data()
     game_info = await client.get_game_info()
 
     ai._prepare_start(client, player_id, game_info, game_data)
     ai.on_start()
-    ai.on_reset()
+    ai.on_reset(None)
 
     iteration = 0
     run = 0
     while True:
         state = await client.observation()
         if client._game_result:
+            run += 1
             if reset and run < num_runs:
-                print("Result obtained. Reset...")
-                await client.chat_send("Reset", False)
+                logger.debug("Result obtained. Reset...")
+                await server.restart_game()
                 ai.on_reset(client._game_result[player_id])
                 client._game_result = None
                 iteration = 0
@@ -95,8 +96,8 @@ async def _play_game_ai(client, player_id, ai, realtime, step_time_limit, game_t
         iteration += 1
 
 
-async def _play_game(player, client, realtime, portconfig, step_time_limit=None, game_time_limit=None, reset=False,
-                     num_runs=1):
+async def _play_game(server, player, client, realtime, portconfig, step_time_limit=None, game_time_limit=None,
+                     reset=False, num_runs=1):
     assert isinstance(realtime, bool), repr(realtime)
 
     player_id = await client.join_game(player.race, portconfig=portconfig)
@@ -105,8 +106,8 @@ async def _play_game(player, client, realtime, portconfig, step_time_limit=None,
     if isinstance(player, Human):
         result = await _play_game_human(client, player_id, realtime, game_time_limit)
     else:
-        result = await _play_game_ai(client, player_id, player.ai, realtime, step_time_limit, game_time_limit, reset,
-                                     num_runs)
+        result = await _play_game_ai(server, client, player_id, player.ai, realtime, step_time_limit, game_time_limit,
+                                     reset, num_runs)
 
     logging.info(f"Result for player id: {player_id}: {result}")
     return result
@@ -137,8 +138,8 @@ async def _host_game(map_settings, players, realtime, portconfig=None, save_repl
         client.game_step = game_steps
 
         try:
-            result = await _play_game(players[0], client, realtime, portconfig, step_time_limit, game_time_limit, reset,
-                                      num_runs)
+            result = await _play_game(server, players[0], client, realtime, portconfig, step_time_limit,
+                                      game_time_limit, reset, num_runs)
             if save_replay_as is not None:
                 await client.save_replay('Replays/' + save_replay_as)
             await client.leave()
