@@ -38,9 +38,12 @@ async def _play_game_ai(server, client, player_id, ai, realtime, step_time_limit
 
     iteration = 0
     run = 0
+    num_wins = 0
     while True:
         state = await client.observation()
         if client._game_result:
+            if client._game_result == Result.Victory:
+                num_wins += 1
             run += 1
             if reset and run < num_runs:
                 logger.debug("Result obtained. Reset...")
@@ -51,13 +54,13 @@ async def _play_game_ai(server, client, player_id, ai, realtime, step_time_limit
                 continue
             else:
                 ai.on_end(client._game_result[player_id])
-                return client._game_result[player_id]
+                return num_wins
 
         gs = GameState(state.observation, game_data)
 
         if game_time_limit and (gs.game_loop * 0.725 * (1 / 16)) > game_time_limit:
             ai.on_end(Result.Tie)
-            return Result.Tie
+            return num_wins
 
         ai._prepare_step(gs)
 
@@ -82,14 +85,14 @@ async def _play_game_ai(server, client, player_id, ai, realtime, step_time_limit
             logger.exception(f"AI step threw an error")  # DO NOT EDIT!
             logger.error(f"resigning due to previous error")
             ai.on_end(Result.Defeat)
-            return Result.Defeat
+            return num_wins
 
         logger.debug(f"Running AI step: done")
 
         if not realtime:
             if not client.in_game:  # Client left (resigned) the game
                 ai.on_end(client._game_result[player_id])
-                return client._game_result[player_id]
+                return num_wins
 
             await client.step()
 
@@ -166,7 +169,8 @@ async def _host_game_aiter(map_settings, players, realtime, portconfig=None, sav
             client.game_step = game_steps
 
             try:
-                result = await _play_game(players[0], client, realtime, portconfig, step_time_limit, game_time_limit)
+                result = await _play_game(server, players[0], client, realtime, portconfig, step_time_limit,
+                                          game_time_limit)
                 run += 1
                 if save_replay_as is not None:
                     await client.save_replay('Replays/' + str(run) + save_replay_as)
@@ -196,7 +200,8 @@ async def _join_game(players, realtime, portconfig, save_replay_as=None, step_ti
         client.game_step = game_steps
 
         try:
-            result = await _play_game(players[1], client, realtime, portconfig, step_time_limit, game_time_limit)
+            result = await _play_game(server, players[1], client, realtime, portconfig, step_time_limit,
+                                      game_time_limit)
             if save_replay_as is not None:
                 await client.save_replay(save_replay_as)
             await client.leave()
