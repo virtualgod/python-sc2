@@ -192,7 +192,7 @@ def host_game_iter(*args, **kwargs):
 
 
 async def _join_game(players, realtime, portconfig, save_replay_as=None, step_time_limit=None, game_time_limit=None,
-                     game_steps=8):
+                     game_steps=8, reset=False, num_runs=1):
     async with SC2Process() as server:
         await server.ping()
 
@@ -201,7 +201,7 @@ async def _join_game(players, realtime, portconfig, save_replay_as=None, step_ti
 
         try:
             result = await _play_game(server, players[1], client, realtime, portconfig, step_time_limit,
-                                      game_time_limit)
+                                      game_time_limit, reset, num_runs)
             if save_replay_as is not None:
                 await client.save_replay(save_replay_as)
             await client.leave()
