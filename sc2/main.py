@@ -41,21 +41,6 @@ async def _play_game_ai(server, client, player_id, ai, realtime, step_time_limit
     num_wins = 0
     while True:
         state = await client.observation()
-        if client._game_result:
-            if client._game_result[player_id] == Result.Victory:
-                num_wins += 1
-            run += 1
-            if reset and run < num_runs:
-                logger.debug("Result obtained. Reset...")
-                await server.restart_game()
-                ai.on_reset(client._game_result[player_id])
-                client._game_result = None
-                iteration = 0
-                continue
-            else:
-                ai.on_end(client._game_result[player_id])
-                return num_wins
-
         gs = GameState(state.observation, game_data)
 
         if game_time_limit and (gs.game_loop * 0.725 * (1 / 16)) > game_time_limit:
@@ -63,6 +48,28 @@ async def _play_game_ai(server, client, player_id, ai, realtime, step_time_limit
             return num_wins
 
         ai._prepare_step(gs)
+        if client._game_result or not ai.units or not ai.known_enemy_units:
+            run += 1
+            res = Result.Defeat
+
+            if client._game_result:
+                if client._game_result[player_id] == Result.Victory:
+                    res = Result.Victory
+                    num_wins += 1
+            elif not ai.known_enemy_units:
+                num_wins += 1
+                res = Result.Victory
+
+            if reset and run < num_runs:
+                logger.debug("Result obtained. Reset...")
+                await server.restart_game()
+                ai.on_reset(res)
+                client._game_result = None
+                iteration = 0
+                continue
+            else:
+                ai.on_end(res)
+                return num_wins
 
         if iteration == 0:
             ai._prepare_first_step()
